@@ -1,7 +1,7 @@
 # Bhet (भेट)
 
 > **Bhet** (भेट) is the Nepali word for "meeting" or "encounter".
-> A self-hostable, private 1:1 WebRTC video call room with automatic TURN relay fallback, real-time connection quality monitoring, in-call encrypted peer-to-peer text chat, low-bandwidth audio-only mode, and full 7-language internationalization.
+> A self-hostable, private 1:1 WebRTC video call room with automatic TURN relay fallback, real-time connection quality monitoring, in-call encrypted peer-to-peer text chat, live speech-to-text closed captions (CC), voice dictation, low-bandwidth audio-only mode, and full 7-language internationalization.
 
 <p align="center">
   <img src="./bhet_home_page.png" alt="Bhet — Private 1:1 Video Calls" width="100%" />
@@ -14,11 +14,15 @@
 - **Zero Sign-Up & Zero Trackers:** Create a room in 1 click; share the guest link; talk immediately.
 - **W3C Perfect Negotiation:** Rock-solid WebRTC state machine handling bidirectional offers/answers without race collisions.
 - **Self-Hosted TURN Relay:** Coturn integration with HMAC-SHA1 ephemeral credentials ensures calls connect through symmetric NATs, firewalls, and cellular networks.
+- **Live Closed Captions (CC):** In-call real-time speech transcription using the native W3C Web Speech API. Captions stream peer-to-peer over `RTCDataChannel` with zero server processing or API fees.
+- **Chat Voice Dictation:** One-tap speech-to-text in the in-call chat input with multi-language synchronization.
 - **Automated Reconnection:** Automatic ICE restarts on network handovers (e.g., switching from Wi-Fi to cellular 4G/5G).
 - **In-Call P2P DataChannel Chat:** Text messages flow directly peer-to-peer via `RTCDataChannel("chat")` without ever touching server disks.
+- **Web Audio Chimes & Visual Toasts:** Synthesized notification sounds for incoming messages and peer arrival with mobile gesture unlock.
 - **Real-Time Quality Metrics:** Live `getStats()` polling measuring round-trip time (RTT), packet loss percentage, and jitter.
 - **Adaptive Audio-Only Mode:** One-click toggle capping upstream video bitrate to 32 kbps to maintain voice clarity on weak networks.
 - **7-Language Internationalization:** English, Nepali (नेपाली), Hindi (हिन्दी), Spanish (Español), French (Français), Portuguese (Português), and Japanese (日本語) with on-demand Devanagari and Japanese font loading.
+- **Modern Responsive UI:** Built with UnoCSS (`@unocss/preset-wind4`) and Element Plus controls dock with full mobile safe-area support.
 
 ---
 
@@ -58,7 +62,7 @@ The fastest way to spin up the complete stack with self-hosted TURN:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-username/bhet.git && cd bhet
+git clone https://github.com/dev1191/Bhet-webrtc.git && cd bhet
 
 # 2. Configure environment
 cp .env.example .env
@@ -127,4 +131,4 @@ Adding a new language takes 4 simple steps without modifying core application co
 
 ## License
 
-MIT © [Bhet Contributors](https://github.com/your-username/bhet)
+MIT © [Bhet Contributors](https://github.com/dev1191/Bhet-webrtc)
