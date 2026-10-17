@@ -1,0 +1,82 @@
+{
+  "app": {
+    "title": "Bhet",
+    "nepaliTitle": "भेट",
+    "subtitle": "Self-hostable, 1:1 peer-to-peer video rooms with TURN fallback. No sign-up, no trackers."
+  },
+  "home": {
+    "guestLangLabel": "Preferred Guest Language (Optional):",
+    "guestLangPlaceholder": "Select language for guest",
+    "createRoom": "Create a Room",
+    "creatingRoom": "Creating Room...",
+    "roomReady": "Room ready! Share the guest link to start talking.",
+    "hostLinkLabel": "Your Host Link (Join call):",
+    "joinAsHost": "Join as Host →",
+    "guestLinkLabel": "Guest Link (Share with peer):",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "copyFailed": "Failed to copy link",
+    "createAnother": "← Create another room"
+  },
+  "room": {
+    "verifying": "Verifying room link...",
+    "unableToJoin": "Unable to Join Room",
+    "callError": "Call Error",
+    "returnHome": "Return to Home",
+    "connected": "Connected",
+    "waitingForPeer": "Waiting for peer...",
+    "connecting": "Connecting...",
+    "peerLeft": "Peer left",
+    "error": "Error",
+    "checkingRoom": "Checking room...",
+    "peer": "Peer",
+    "you": "You",
+    "host": "Host",
+    "guest": "Guest",
+    "cameraOff": "Camera is off",
+    "noVideoFeed": "No video feed"
+  },
+  "controls": {
+    "unmute": "Unmute microphone",
+    "mute": "Mute microphone",
+    "cameraOn": "Turn camera on",
+    "cameraOff": "Turn camera off",
+    "audioOnlyOn": "Switch to Video Mode",
+    "audioOnlyOff": "Audio-Only Mode (Saves bandwidth)",
+    "toggleChat": "Toggle in-call text chat",
+    "leaveCall": "Leave call"
+  },
+  "chat": {
+    "title": "In-Call Chat",
+    "emptyState": "No messages yet. Send a message to get started!",
+    "placeholder": "Type a message...",
+    "send": "Send"
+  },
+  "quality": {
+    "good": "Good",
+    "fair": "Fair",
+    "poor": "Poor",
+    "measuring": "Measuring...",
+    "rtt": "RTT",
+    "loss": "Loss",
+    "jitter": "Jitter"
+  },
+  "errors": {
+    "ROOM_FULL": "This room already has 2 participants and is full.",
+    "EXPIRED": "This room link has expired (24-hour limit).",
+    "INVALID_TOKEN": "Invalid room link or access token.",
+    "DISCONNECTED": "Connection lost. Please check your internet connection.",
+    "PEER_LEFT": "The other participant has left the call.",
+    "UNAUTHORIZED": "Unauthorized access to this room.",
+    "UNKNOWN": "An unexpected error occurred. Please try again."
+  },
+  "languages": {
+    "en": "English",
+    "ne": "नेपाली (Nepali)",
+    "hi": "हिन्दी (Hindi)",
+    "es": "Español (Spanish)",
+    "fr": "Français (French)",
+    "pt": "Português (Portuguese)",
+    "ja": "日本語 (Japanese)"
+  }
+}

@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.turbo/
+coverage/
+
+# Local environment and data
+.env
+.env.local
+*.sqlite
+*.sqlite-journal
+*.db
+
+# Editor and OS files
+.DS_Store
+.vscode/
+.idea/

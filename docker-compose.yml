@@ -1,0 +1,43 @@
+services:
+  # Self-hosted STUN/TURN server using coturn
+  coturn:
+    image: coturn/coturn:latest
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - TURN_SECRET=${TURN_SECRET:-bhet-shared-turn-secret}
+      - TURN_REALM=${TURN_REALM:-bhet.local}
+    command:
+      - turnserver
+      - -n
+      - --log-file=stdout
+      - --use-auth-secret
+      - --static-auth-secret=${TURN_SECRET:-bhet-shared-turn-secret}
+      - --realm=${TURN_REALM:-bhet.local}
+      - --listening-port=3478
+      - --min-port=49152
+      - --max-port=49200
+      - --fingerprint
+      - --no-cli
+
+  # Bhet application (Server + Web)
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DB_PATH=/app/data/bhet.sqlite
+      - TURN_SECRET=${TURN_SECRET:-bhet-shared-turn-secret}
+      - TURN_URLS=${TURN_URLS:-turn:localhost:3478?transport=udp,turn:localhost:3478?transport=tcp}
+      - TURN_CREDENTIAL_TTL_SECONDS=3600
+    volumes:
+      - bhet_data:/app/data
+    depends_on:
+      - coturn
+
+volumes:
+  bhet_data:

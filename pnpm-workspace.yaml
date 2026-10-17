@@ -1,0 +1,8 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# pnpm 10 blocks dependency install scripts unless approved.
+# esbuild (used by Vite, Vitest and tsx) is the only one we allow.
+onlyBuiltDependencies:
+  - esbuild

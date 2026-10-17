@@ -1,0 +1,82 @@
+{
+  "app": {
+    "title": "Bhet",
+    "nepaliTitle": "भेट",
+    "subtitle": "Salas de video punto a punto 1:1 autoalojables con respaldo TURN. Sin registro, sin rastreadores."
+  },
+  "home": {
+    "guestLangLabel": "Idioma preferido para el invitado (Opcional):",
+    "guestLangPlaceholder": "Seleccionar idioma para el invitado",
+    "createRoom": "Crear una sala",
+    "creatingRoom": "Creando sala...",
+    "roomReady": "¡Sala lista! Comparte el enlace con tu invitado para comenzar a hablar.",
+    "hostLinkLabel": "Tu enlace de anfitrión (Unirse a la llamada):",
+    "joinAsHost": "Unirse como anfitrión →",
+    "guestLinkLabel": "Enlace para invitado (Compartir con tu compañero):",
+    "copy": "Copiar",
+    "copied": "¡Copiado!",
+    "copyFailed": "Error al copiar el enlace",
+    "createAnother": "← Crear otra sala"
+  },
+  "room": {
+    "verifying": "Verificando enlace de la sala...",
+    "unableToJoin": "No se pudo ingresar a la sala",
+    "callError": "Error en la llamada",
+    "returnHome": "Volver al inicio",
+    "connected": "Conectado",
+    "waitingForPeer": "Esperando al compañero...",
+    "connecting": "Conectando...",
+    "peerLeft": "El compañero ha salido",
+    "error": "Error",
+    "checkingRoom": "Comprobando sala...",
+    "peer": "Compañero",
+    "you": "Tú",
+    "host": "Anfitrión",
+    "guest": "Invitado",
+    "cameraOff": "La cámara está apagada",
+    "noVideoFeed": "Sin señal de video"
+  },
+  "controls": {
+    "unmute": "Activar micrófono",
+    "mute": "Silenciar micrófono",
+    "cameraOn": "Encender cámara",
+    "cameraOff": "Apagar cámara",
+    "audioOnlyOn": "Cambiar a modo de video",
+    "audioOnlyOff": "Modo solo audio (Ahorra ancho de banda)",
+    "toggleChat": "Abrir/cerrar chat de texto",
+    "leaveCall": "Finalizar llamada"
+  },
+  "chat": {
+    "title": "Chat de la llamada",
+    "emptyState": "No hay mensajes aún. ¡Envía un mensaje para comenzar!",
+    "placeholder": "Escribe un mensaje...",
+    "send": "Enviar"
+  },
+  "quality": {
+    "good": "Buena",
+    "fair": "Regular",
+    "poor": "Mala",
+    "measuring": "Midiendo...",
+    "rtt": "RTT",
+    "loss": "Pérdida",
+    "jitter": "Jitter"
+  },
+  "errors": {
+    "ROOM_FULL": "Esta sala ya tiene 2 participantes y está llena.",
+    "EXPIRED": "El enlace de esta sala ha expirado (límite de 24 horas).",
+    "INVALID_TOKEN": "Enlace de sala o token no válido.",
+    "DISCONNECTED": "Conexión perdida. Por favor revisa tu conexión a internet.",
+    "PEER_LEFT": "El otro participante ha salido de la llamada.",
+    "UNAUTHORIZED": "Acceso no autorizado a esta sala.",
+    "UNKNOWN": "Ocurrió un error inesperado. Por favor intenta de nuevo."
+  },
+  "languages": {
+    "en": "English",
+    "ne": "नेपाली (Nepali)",
+    "hi": "हिन्दी (Hindi)",
+    "es": "Español (Spanish)",
+    "fr": "Français (French)",
+    "pt": "Português (Portuguese)",
+    "ja": "日本語 (Japanese)"
+  }
+}

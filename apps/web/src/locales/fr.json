@@ -1,0 +1,82 @@
+{
+  "app": {
+    "title": "Bhet",
+    "nepaliTitle": "भेट",
+    "subtitle": "Salons vidéo poste-à-poste 1:1 auto-hébergés avec relais TURN. Sans inscription, sans traceurs."
+  },
+  "home": {
+    "guestLangLabel": "Langue préférée de l'invité (Facultatif) :",
+    "guestLangPlaceholder": "Sélectionnez la langue pour l'invité",
+    "createRoom": "Créer un salon",
+    "creatingRoom": "Création du salon...",
+    "roomReady": "Salon prêt ! Partagez le lien invité pour commencer à discuter.",
+    "hostLinkLabel": "Votre lien d'hôte (Rejoindre l'appel) :",
+    "joinAsHost": "Rejoindre en tant qu'hôte →",
+    "guestLinkLabel": "Lien invité (Partager avec votre correspondant) :",
+    "copy": "Copier",
+    "copied": "Copié !",
+    "copyFailed": "Échec de la copie du lien",
+    "createAnother": "← Créer un autre salon"
+  },
+  "room": {
+    "verifying": "Vérification du lien du salon...",
+    "unableToJoin": "Impossible de rejoindre le salon",
+    "callError": "Erreur d'appel",
+    "returnHome": "Retour à l'accueil",
+    "connected": "Connecté",
+    "waitingForPeer": "En attente du correspondant...",
+    "connecting": "Connexion en cours...",
+    "peerLeft": "Le correspondant a quitté",
+    "error": "Erreur",
+    "checkingRoom": "Vérification du salon...",
+    "peer": "Correspondant",
+    "you": "Vous",
+    "host": "Hôte",
+    "guest": "Invité",
+    "cameraOff": "La caméra est désactivée",
+    "noVideoFeed": "Aucun flux vidéo"
+  },
+  "controls": {
+    "unmute": "Activer le micro",
+    "mute": "Couper le micro",
+    "cameraOn": "Activer la caméra",
+    "cameraOff": "Désactiver la caméra",
+    "audioOnlyOn": "Passer en mode vidéo",
+    "audioOnlyOff": "Mode audio seul (Économise la bande passante)",
+    "toggleChat": "Afficher/masquer le chat",
+    "leaveCall": "Quitter l'appel"
+  },
+  "chat": {
+    "title": "Chat de l'appel",
+    "emptyState": "Aucun message pour le moment. Envoyez un message pour commencer !",
+    "placeholder": "Écrivez un message...",
+    "send": "Envoyer"
+  },
+  "quality": {
+    "good": "Bonne",
+    "fair": "Moyenne",
+    "poor": "Faible",
+    "measuring": "Mesure en cours...",
+    "rtt": "RTT",
+    "loss": "Perte",
+    "jitter": "Gigue"
+  },
+  "errors": {
+    "ROOM_FULL": "Ce salon compte déjà 2 participants et est complet.",
+    "EXPIRED": "Le lien de ce salon a expiré (limite de 24 heures).",
+    "INVALID_TOKEN": "Lien de salon ou jeton non valide.",
+    "DISCONNECTED": "Connexion perdue. Veuillez vérifier votre connexion internet.",
+    "PEER_LEFT": "L'autre participant a quitté l'appel.",
+    "UNAUTHORIZED": "Accès non autorisé à ce salon.",
+    "UNKNOWN": "Une erreur inattendue est survenue. Veuillez réessayer."
+  },
+  "languages": {
+    "en": "English",
+    "ne": "नेपाली (Nepali)",
+    "hi": "हिन्दी (Hindi)",
+    "es": "Español (Spanish)",
+    "fr": "Français (French)",
+    "pt": "Português (Portuguese)",
+    "ja": "日本語 (Japanese)"
+  }
+}

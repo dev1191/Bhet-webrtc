@@ -1,0 +1,82 @@
+{
+  "app": {
+    "title": "Bhet",
+    "nepaliTitle": "भेट",
+    "subtitle": "TURNリレー対応のセルフホスト型1対1 P2Pビデオ通話。登録不要・トラッカーなし。"
+  },
+  "home": {
+    "guestLangLabel": "ゲストの優先言語（任意）:",
+    "guestLangPlaceholder": "ゲストの言語を選択",
+    "createRoom": "ルームを作成",
+    "creatingRoom": "ルーム作成中...",
+    "roomReady": "ルームの準備ができました！ゲスト用リンクを共有して会話を始めましょう。",
+    "hostLinkLabel": "ホスト用リンク（通話に参加）:",
+    "joinAsHost": "ホストとして参加 →",
+    "guestLinkLabel": "ゲスト用リンク（相手に共有）:",
+    "copy": "コピー",
+    "copied": "コピー完了！",
+    "copyFailed": "リンクのコピーに失敗しました",
+    "createAnother": "← 別のルームを作成"
+  },
+  "room": {
+    "verifying": "ルームリンクを確認中...",
+    "unableToJoin": "ルームに参加できません",
+    "callError": "通話エラー",
+    "returnHome": "ホームに戻る",
+    "connected": "接続完了",
+    "waitingForPeer": "相手の参加を待機中...",
+    "connecting": "接続中...",
+    "peerLeft": "相手が退出しました",
+    "error": "エラー",
+    "checkingRoom": "ルーム確認中...",
+    "peer": "相手",
+    "you": "あなた",
+    "host": "ホスト",
+    "guest": "ゲスト",
+    "cameraOff": "カメラはオフです",
+    "noVideoFeed": "映像を受信していません"
+  },
+  "controls": {
+    "unmute": "マイクをオンにする",
+    "mute": "マイクをミュートする",
+    "cameraOn": "カメラをオンにする",
+    "cameraOff": "カメラをオフにする",
+    "audioOnlyOn": "ビデオモードに切り替え",
+    "audioOnlyOff": "音声のみモード（通信量を節約）",
+    "toggleChat": "テキストチャットを開閉",
+    "leaveCall": "通話を終了"
+  },
+  "chat": {
+    "title": "通話チャット",
+    "emptyState": "メッセージはまだありません。メッセージを送信してみましょう！",
+    "placeholder": "メッセージを入力...",
+    "send": "送信"
+  },
+  "quality": {
+    "good": "良好",
+    "fair": "普通",
+    "poor": "不安定",
+    "measuring": "測定中...",
+    "rtt": "RTT",
+    "loss": "パケット損失",
+    "jitter": "ジッター"
+  },
+  "errors": {
+    "ROOM_FULL": "このルームはすでに2名参加しており、満員です。",
+    "EXPIRED": "このルームリンクは有効期限（24時間）が切れています。",
+    "INVALID_TOKEN": "無効なルームリンクまたはトークンです。",
+    "DISCONNECTED": "接続が切断されました。インターネット接続をご確認ください。",
+    "PEER_LEFT": "通話相手が退出しました。",
+    "UNAUTHORIZED": "このルームへのアクセス権限がありません。",
+    "UNKNOWN": "予期せぬエラーが発生しました。再度お試しください。"
+  },
+  "languages": {
+    "en": "English",
+    "ne": "नेपाली (Nepali)",
+    "hi": "हिन्दी (Hindi)",
+    "es": "Español (Spanish)",
+    "fr": "Français (French)",
+    "pt": "Português (Portuguese)",
+    "ja": "日本語 (Japanese)"
+  }
+}
