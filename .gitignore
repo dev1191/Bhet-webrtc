@@ -10,6 +10,10 @@ coverage/
 *.sqlite-journal
 *.db
 
+# Logs
+logs/
+*.log
+
 # Editor and OS files
 .DS_Store
 .vscode/

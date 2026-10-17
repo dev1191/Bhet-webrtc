@@ -1,3 +1,5 @@
+import { logger } from "./logger.js";
+
 export interface TranslationResult {
   original: string;
   translated: string;
@@ -21,9 +23,14 @@ export async function translateText(
   const cacheKey = `${sourceLang}:${targetLang}:${trimmed}`;
   const cached = cache.get(cacheKey);
   if (cached) {
+    logger.info("Translate", `Cache hit: "${trimmed}" -> "${cached.translated}"`, {
+      sourceLang: cached.sourceLang,
+      targetLang: cached.targetLang,
+    });
     return cached;
   }
 
+  const startTime = Date.now();
   try {
     const url = `https://translate.googleapis.com/translate_a/single?client=dict-chrome-ex&sl=${encodeURIComponent(
       sourceLang
@@ -55,11 +62,20 @@ export async function translateText(
           if (firstKey) cache.delete(firstKey);
         }
         cache.set(cacheKey, result);
+
+        logger.info(
+          "Translate",
+          `Success: "${trimmed}" -> "${result.translated}" in ${Date.now() - startTime}ms`,
+          { detectedSource, targetLang }
+        );
+
         return result;
       }
+    } else {
+      logger.warn("Translate", `API returned status ${res.status}: "${trimmed}"`);
     }
   } catch (err) {
-    console.warn("Free translation API error:", err);
+    logger.error("Translate", `Error translating "${trimmed}"`, { error: String(err) });
   }
 
   // Graceful fallback: return original text

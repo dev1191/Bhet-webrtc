@@ -11,6 +11,7 @@ import { RoomService } from "./room-service.js";
 import { createRoomRoutes } from "./routes/room.routes.js";
 import { SignalingHub, type TokenResolver } from "./signaling.js";
 import { createDbTokenResolver } from "./utils/token-resolver.js";
+import { logger } from "./utils/logger.js";
 import { translateText } from "./utils/translate.js";
 
 export { createDbTokenResolver };
@@ -44,6 +45,34 @@ export function createApp(options: AppOptions = {}) {
   app.route("/api", createRoomRoutes(roomController));
   app.get("/api/ice-servers", roomController.getIceServers);
 
+  // Debug Logs (View/Download bhet.log)
+  app.get("/api/logs", (c) => {
+    const limit = Number.parseInt(c.req.query("limit") || "100", 10);
+    const logs = logger.readRecentLogs(limit);
+    if (c.req.query("download") === "1") {
+      c.header("Content-Disposition", 'attachment; filename="bhet.log"');
+    }
+    return c.text(logs);
+  });
+
+  // Client-to-Server Log Ingestion (for browser STT / WebRTC diagnostics)
+  app.post("/api/logs", async (c) => {
+    try {
+      const body = await c.req.json().catch(() => ({}));
+      const level = body?.level === "ERROR" ? "ERROR" : body?.level === "WARN" ? "WARN" : "INFO";
+      const tag = typeof body?.tag === "string" ? body.tag.slice(0, 30) : "Client";
+      const message = typeof body?.message === "string" ? body.message : "Empty log message";
+      logger[level === "ERROR" ? "error" : level === "WARN" ? "warn" : "info"](
+        `Client:${tag}`,
+        message,
+        body?.details
+      );
+      return c.json({ ok: true });
+    } catch {
+      return c.json({ ok: false }, 400);
+    }
+  });
+
   // Free Live Speech Translation
   app.post("/api/translate", async (c) => {
     try {
@@ -56,7 +85,8 @@ export function createApp(options: AppOptions = {}) {
       const sourceLang = typeof body?.sourceLang === "string" ? body.sourceLang.slice(0, 5) : "auto";
       const result = await translateText(text, targetLang, sourceLang);
       return c.json(result);
-    } catch {
+    } catch (err) {
+      logger.error("HTTP", "POST /api/translate unhandled error", { error: String(err) });
       return c.json({ error: "Translation failed" }, 500);
     }
   });

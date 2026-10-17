@@ -70,13 +70,34 @@ export function useSpeechToText() {
 
   let recognition: SpeechRecognitionInstance | null = null;
   let activeOptions: UseSpeechToTextOptions = {};
+  let shouldKeepListening = false;
+  let restartTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  async function logClient(level: "INFO" | "WARN" | "ERROR", tag: string, message: string, details?: unknown) {
+    try {
+      console[level === "ERROR" ? "error" : level === "WARN" ? "warn" : "log"](`[${tag}] ${message}`, details ?? "");
+      fetch("/api/logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ level, tag, message, details }),
+      }).catch(() => {});
+    } catch {
+      // Ignore client log network error
+    }
+  }
 
   function start(options: UseSpeechToTextOptions = {}) {
     const SpeechClass = getSpeechRecognitionClass();
     if (!SpeechClass) {
       error.value = "SPEECH_NOT_SUPPORTED";
+      logClient("ERROR", "STT", "SpeechRecognition is NOT supported in this browser. Use Chrome, Edge, or Safari.");
       options.onError?.("SPEECH_NOT_SUPPORTED");
       return;
+    }
+
+    if (restartTimeout) {
+      clearTimeout(restartTimeout);
+      restartTimeout = null;
     }
 
     if (recognition && isListening.value) {
@@ -88,6 +109,7 @@ export function useSpeechToText() {
     }
 
     activeOptions = options;
+    shouldKeepListening = true;
     error.value = null;
 
     try {
@@ -98,6 +120,7 @@ export function useSpeechToText() {
 
       recognition.onstart = () => {
         isListening.value = true;
+        logClient("INFO", "STT", `Listening started (lang: ${recognition?.lang || "unknown"})`);
       };
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -118,6 +141,7 @@ export function useSpeechToText() {
         if (finalChunk) {
           transcript.value = transcript.value ? `${transcript.value} ${finalChunk.trim()}` : finalChunk.trim();
           interimTranscript.value = "";
+          logClient("INFO", "STT", `Final speech result: "${finalChunk.trim()}"`);
           activeOptions.onResult?.(finalChunk.trim(), true);
         } else if (currentInterim) {
           interimTranscript.value = currentInterim;
@@ -126,9 +150,10 @@ export function useSpeechToText() {
       };
 
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        // "no-speech" is normal when pausing; don't count as breaking failure
+        // "no-speech" is normal when user is quiet
         if (event.error !== "no-speech") {
           error.value = event.error;
+          logClient("ERROR", "STT", `SpeechRecognition error: "${event.error}"`);
           activeOptions.onError?.(event.error);
         }
       };
@@ -137,16 +162,37 @@ export function useSpeechToText() {
         isListening.value = false;
         interimTranscript.value = "";
         activeOptions.onEnd?.();
+
+        // Auto-restart continuous recognition if not explicitly stopped
+        if (activeOptions.continuous && shouldKeepListening && error.value !== "not-allowed") {
+          logClient("INFO", "STT", "SpeechRecognition paused by browser, restarting automatically...");
+          restartTimeout = setTimeout(() => {
+            if (shouldKeepListening) {
+              try {
+                recognition?.start();
+              } catch {
+                // If recreate needed
+                start(activeOptions);
+              }
+            }
+          }, 300);
+        }
       };
 
       recognition.start();
     } catch (err) {
       error.value = err instanceof Error ? err.message : "SPEECH_ERROR";
+      logClient("ERROR", "STT", `Failed to start SpeechRecognition: ${error.value}`);
       isListening.value = false;
     }
   }
 
   function stop() {
+    shouldKeepListening = false;
+    if (restartTimeout) {
+      clearTimeout(restartTimeout);
+      restartTimeout = null;
+    }
     if (recognition) {
       try {
         recognition.stop();
@@ -156,6 +202,7 @@ export function useSpeechToText() {
     }
     isListening.value = false;
     interimTranscript.value = "";
+    logClient("INFO", "STT", "SpeechRecognition stopped by user.");
   }
 
   function reset() {

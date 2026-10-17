@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { ElMessage } from "element-plus";
 import CaptionOverlay from "../components/CaptionOverlay.vue";
 import ChatPanel from "../components/ChatPanel.vue";
 import ControlsBar from "../components/ControlsBar.vue";
@@ -89,6 +90,13 @@ function startCaptionRecognition() {
     lang: speechLang.value,
     continuous: true,
     interimResults: true,
+    onError(err) {
+      if (err === "not-allowed") {
+        ElMessage.error("Microphone permission denied for speech recognition.");
+      } else if (err === "network") {
+        ElMessage.warning("Speech recognition network error. Please check your internet connection.");
+      }
+    },
     async onResult(text, isFinal) {
       if (isFinal) {
         let translated: string | undefined;
@@ -108,8 +116,13 @@ function startCaptionRecognition() {
 }
 
 function toggleCaptions() {
+  if (!isSpeechSupported.value) {
+    ElMessage.warning("Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.");
+    return;
+  }
   isCaptionsEnabled.value = !isCaptionsEnabled.value;
   if (isCaptionsEnabled.value) {
+    ElMessage.success("Live captions & real-time translation enabled.");
     if (!isMuted.value) {
       startCaptionRecognition();
     }
