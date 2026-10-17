@@ -43,6 +43,8 @@
     "cameraOff": "Désactiver la caméra",
     "audioOnlyOn": "Passer en mode vidéo",
     "audioOnlyOff": "Mode audio seul (Économise la bande passante)",
+    "captionsOn": "Activer les sous-titres en direct",
+    "captionsOff": "Désactiver les sous-titres en direct",
     "toggleChat": "Afficher/masquer le chat",
     "leaveCall": "Quitter l'appel"
   },
@@ -50,6 +52,9 @@
     "title": "Chat de l'appel",
     "emptyState": "Aucun message pour le moment. Envoyez un message pour commencer !",
     "placeholder": "Écrivez un message...",
+    "startVoice": "Dictée vocale (parlez pour écrire)",
+    "stopVoice": "Arrêter la dictée vocale",
+    "listening": "À l'écoute... parlez maintenant",
     "send": "Envoyer"
   },
   "quality": {

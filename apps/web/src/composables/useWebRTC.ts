@@ -39,6 +39,13 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export interface LiveCaption {
+  sender: "you" | "peer";
+  text: string;
+  isFinal: boolean;
+  timestamp: number;
+}
+
 export function useWebRTC(options: UseWebRTCOptions) {
   const status = ref<CallStatus>("initializing");
   const role = ref<Role | null>(null);
@@ -52,6 +59,17 @@ export function useWebRTC(options: UseWebRTCOptions) {
 
   const localStream = shallowRef<MediaStream | null>(null);
   const remoteStream = shallowRef<MediaStream | null>(null);
+
+  // Live Captions (Speech-to-Text)
+  const activeCaption = ref<LiveCaption | null>(null);
+  let captionTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function scheduleCaptionDismiss() {
+    if (captionTimer) clearTimeout(captionTimer);
+    captionTimer = setTimeout(() => {
+      activeCaption.value = null;
+    }, 4500);
+  }
 
   // DataChannel & Chat
   const chatMessages = ref<ChatMessage[]>([]);
@@ -109,6 +127,17 @@ export function useWebRTC(options: UseWebRTCOptions) {
     channel.onmessage = (event) => {
       try {
         const parsed = JSON.parse(event.data);
+        if (parsed?.type === "caption" && typeof parsed.text === "string") {
+          activeCaption.value = {
+            sender: "peer",
+            text: parsed.text,
+            isFinal: Boolean(parsed.isFinal),
+            timestamp: Date.now(),
+          };
+          scheduleCaptionDismiss();
+          return;
+        }
+
         if (parsed && typeof parsed.text === "string") {
           chatMessages.value.push({
             id: parsed.id ?? `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -126,6 +155,33 @@ export function useWebRTC(options: UseWebRTCOptions) {
         });
       }
     };
+  }
+
+  function sendCaption(text: string, isFinal: boolean) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    activeCaption.value = {
+      sender: "you",
+      text: trimmed,
+      isFinal,
+      timestamp: Date.now(),
+    };
+    scheduleCaptionDismiss();
+
+    if (dataChannel && dataChannel.readyState === "open") {
+      try {
+        dataChannel.send(
+          JSON.stringify({
+            type: "caption",
+            text: trimmed,
+            isFinal,
+          })
+        );
+      } catch (err) {
+        console.warn("Failed to send caption over DataChannel:", err);
+      }
+    }
   }
 
   function sendChatMessage(text: string): boolean {
@@ -595,6 +651,12 @@ export function useWebRTC(options: UseWebRTCOptions) {
       pc = null;
     }
 
+    if (captionTimer) {
+      clearTimeout(captionTimer);
+      captionTimer = null;
+    }
+    activeCaption.value = null;
+
     if (ws) {
       ws.close(1000, "Left call");
       ws = null;
@@ -616,6 +678,8 @@ export function useWebRTC(options: UseWebRTCOptions) {
     isAudioOnly,
     localStream,
     remoteStream,
+    activeCaption,
+    sendCaption,
     chatMessages,
     isChatReady,
     quality,

@@ -43,6 +43,8 @@
     "cameraOff": "カメラをオフにする",
     "audioOnlyOn": "ビデオモードに切り替え",
     "audioOnlyOff": "音声のみモード（通信量を節約）",
+    "captionsOn": "リアルタイム字幕をオンにする",
+    "captionsOff": "リアルタイム字幕をオフにする",
     "toggleChat": "テキストチャットを開閉",
     "leaveCall": "通話を終了"
   },
@@ -50,6 +52,9 @@
     "title": "通話チャット",
     "emptyState": "メッセージはまだありません。メッセージを送信してみましょう！",
     "placeholder": "メッセージを入力...",
+    "startVoice": "音声入力（話して入力）",
+    "stopVoice": "音声入力を停止",
+    "listening": "音声を聞き取り中... お話しください",
     "send": "送信"
   },
   "quality": {

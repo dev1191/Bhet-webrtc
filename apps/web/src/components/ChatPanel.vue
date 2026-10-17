@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { ChatMessage } from "../composables/useWebRTC";
+import { useSpeechToText } from "../composables/useSpeechToText";
 
 const props = withDefaults(
   defineProps<{
@@ -24,11 +25,44 @@ const { t, locale } = useI18n();
 const inputText = ref("");
 const messagesContainer = ref<HTMLDivElement | null>(null);
 
+const { isSupported: isSpeechSupported, isListening, start: startSpeech, stop: stopSpeech } = useSpeechToText();
+
+const speechLang = computed(() => {
+  const map: Record<string, string> = {
+    en: "en-US",
+    ne: "ne-NP",
+    hi: "hi-IN",
+    es: "es-ES",
+    fr: "fr-FR",
+    pt: "pt-BR",
+    ja: "ja-JP",
+  };
+  return map[locale.value] || "en-US";
+});
+
+function toggleVoiceInput() {
+  if (isListening.value) {
+    stopSpeech();
+  } else {
+    startSpeech({
+      lang: speechLang.value,
+      continuous: true,
+      interimResults: true,
+      onResult(text, isFinal) {
+        if (isFinal) {
+          inputText.value = inputText.value ? `${inputText.value} ${text}` : text;
+        }
+      },
+    });
+  }
+}
+
 const quickEmojis = ["👋", "👍", "❤️", "😂", "🎉", "🔥"];
 
 function handleSend() {
   const text = inputText.value.trim();
   if (!text) return;
+  if (isListening.value) stopSpeech();
   emit("sendMessage", text);
   inputText.value = "";
 }
@@ -50,6 +84,7 @@ watch(
   () => props.isOpen,
   (open) => {
     if (open) scrollToBottom();
+    else if (isListening.value) stopSpeech();
   }
 );
 
@@ -155,10 +190,25 @@ function formatTime(timestamp: number) {
         <input
           v-model="inputText"
           type="text"
-          :placeholder="t('chat.placeholder')"
+          :placeholder="isListening ? t('chat.listening') : t('chat.placeholder')"
           class="flex-1 h-10.5 bg-slate-800/60 border border-white/10 rounded-xl px-3.5 text-white text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-500"
           @keydown.enter.prevent="handleSend"
         />
+        <!-- Speech-to-Text Voice Dictation -->
+        <button
+          v-if="isSpeechSupported"
+          type="button"
+          class="w-10.5 h-10.5 rounded-xl border flex items-center justify-center cursor-pointer transition-all shrink-0"
+          :class="isListening ? 'bg-rose-500/25 text-rose-400 border-rose-500/40 shadow-lg shadow-rose-500/20 animate-pulse' : 'bg-slate-800/80 hover:bg-slate-700/90 text-slate-400 hover:text-white border-white/10'"
+          :title="isListening ? t('chat.stopVoice') : t('chat.startVoice')"
+          @click="toggleVoiceInput"
+        >
+          <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" y1="19" x2="12" y2="22" />
+          </svg>
+        </button>
         <button
           type="submit"
           class="w-10.5 h-10.5 rounded-xl border-0 bg-gradient-to-br from-blue-600 to-indigo-600 text-white cursor-pointer flex items-center justify-center shadow-lg shadow-blue-500/40 hover:not-disabled:-translate-y-0.5 hover:not-disabled:shadow-blue-500/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all"

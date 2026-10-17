@@ -43,6 +43,8 @@
     "cameraOff": "Turn camera off",
     "audioOnlyOn": "Switch to Video Mode",
     "audioOnlyOff": "Audio-Only Mode (Saves bandwidth)",
+    "captionsOn": "Turn on live captions",
+    "captionsOff": "Turn off live captions",
     "toggleChat": "Toggle in-call text chat",
     "leaveCall": "Leave call"
   },
@@ -50,6 +52,9 @@
     "title": "In-Call Chat",
     "emptyState": "No messages yet. Send a message to get started!",
     "placeholder": "Type a message...",
+    "startVoice": "Voice dictation (Speak to type)",
+    "stopVoice": "Stop voice dictation",
+    "listening": "Listening... speak now",
     "send": "Send"
   },
   "quality": {

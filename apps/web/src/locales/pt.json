@@ -43,6 +43,8 @@
     "cameraOff": "Desligar câmera",
     "audioOnlyOn": "Mudar para modo de vídeo",
     "audioOnlyOff": "Modo somente áudio (Economiza largura de banda)",
+    "captionsOn": "Ativar legendas ao vivo",
+    "captionsOff": "Desativar legendas ao vivo",
     "toggleChat": "Abrir/fechar chat de texto",
     "leaveCall": "Encerrar chamada"
   },
@@ -50,6 +52,9 @@
     "title": "Chat da chamada",
     "emptyState": "Ainda não há mensagens. Envie uma mensagem para começar!",
     "placeholder": "Digite uma mensagem...",
+    "startVoice": "Ditado por voz (fale para digitar)",
+    "stopVoice": "Parar ditado por voz",
+    "listening": "Ouvindo... fale agora",
     "send": "Enviar"
   },
   "quality": {

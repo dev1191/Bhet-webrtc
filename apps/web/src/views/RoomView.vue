@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import CaptionOverlay from "../components/CaptionOverlay.vue";
 import ChatPanel from "../components/ChatPanel.vue";
 import ControlsBar from "../components/ControlsBar.vue";
 import LanguageSwitcher from "../components/LanguageSwitcher.vue";
 import QualityBadge from "../components/QualityBadge.vue";
 import VideoTile from "../components/VideoTile.vue";
+import { useSpeechToText } from "../composables/useSpeechToText";
 import { useWebRTC } from "../composables/useWebRTC";
 
 const props = defineProps<{
@@ -17,7 +19,7 @@ const emit = defineEmits<{
   (e: "leave"): void;
 }>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const isValidating = ref(true);
 const validationErrorCode = ref<string | null>(null);
@@ -40,6 +42,8 @@ const {
   isAudioOnly,
   localStream,
   remoteStream,
+  activeCaption,
+  sendCaption,
   chatMessages,
   isChatReady,
   quality,
@@ -53,6 +57,62 @@ const {
 } = useWebRTC({
   token: props.token,
   roomId: props.roomId,
+});
+
+// Live Closed Captions (Speech-to-Text)
+const {
+  isSupported: isSpeechSupported,
+  isListening: isCaptionListening,
+  start: startCaptions,
+  stop: stopCaptions,
+} = useSpeechToText();
+
+const isCaptionsEnabled = ref(false);
+
+const speechLang = computed(() => {
+  const map: Record<string, string> = {
+    en: "en-US",
+    ne: "ne-NP",
+    hi: "hi-IN",
+    es: "es-ES",
+    fr: "fr-FR",
+    pt: "pt-BR",
+    ja: "ja-JP",
+  };
+  return map[locale.value] || "en-US";
+});
+
+function toggleCaptions() {
+  isCaptionsEnabled.value = !isCaptionsEnabled.value;
+  if (isCaptionsEnabled.value) {
+    if (!isMuted.value) {
+      startCaptions({
+        lang: speechLang.value,
+        continuous: true,
+        interimResults: true,
+        onResult(text, isFinal) {
+          sendCaption(text, isFinal);
+        },
+      });
+    }
+  } else {
+    stopCaptions();
+  }
+}
+
+watch(isMuted, (muted) => {
+  if (muted && isCaptionsEnabled.value) {
+    stopCaptions();
+  } else if (!muted && isCaptionsEnabled.value) {
+    startCaptions({
+      lang: speechLang.value,
+      continuous: true,
+      interimResults: true,
+      onResult(text, isFinal) {
+        sendCaption(text, isFinal);
+      },
+    });
+  }
 });
 
 let sharedAudioCtx: AudioContext | null = null;
@@ -230,6 +290,7 @@ function unlockAudio() {
 onUnmounted(() => {
   window.removeEventListener("click", unlockAudio);
   window.removeEventListener("touchstart", unlockAudio);
+  if (isCaptionsEnabled.value) stopCaptions();
   if (toastTimer) clearTimeout(toastTimer);
   document.title = "Bhet — Secure P2P Video";
   if (sharedAudioCtx && sharedAudioCtx.state !== "closed") {
@@ -502,6 +563,9 @@ function handleLeave() {
       </div>
     </main>
 
+    <!-- Live Speech-to-Text Closed Captions Overlay -->
+    <CaptionOverlay :caption="activeCaption" />
+
     <!-- Slide-over Chat Panel with isChatReady -->
     <ChatPanel
       :messages="chatMessages"
@@ -518,11 +582,14 @@ function handleLeave() {
         :is-muted="isMuted"
         :is-camera-off="isCameraOff"
         :is-audio-only="isAudioOnly"
+        :is-captions-enabled="isCaptionsEnabled"
+        :is-speech-supported="isSpeechSupported"
         :is-chat-open="isChatOpen"
         :unread-count="unreadCount"
         @toggle-audio="toggleAudio"
         @toggle-video="toggleVideo"
         @toggle-audio-only="toggleAudioOnly"
+        @toggle-captions="toggleCaptions"
         @toggle-chat="isChatOpen = !isChatOpen"
         @leave="handleLeave"
       />
