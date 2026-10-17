@@ -255,7 +255,7 @@ describe("Server HTTP & WebSocket", () => {
       }),
     });
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = (await res.json()) as Record<string, unknown>;
     expect(data.original).toBe("Hola");
     expect(data.translated).toBeTypeOf("string");
     expect(data.targetLang).toBe("en");

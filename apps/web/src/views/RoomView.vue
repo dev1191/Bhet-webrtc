@@ -65,7 +65,6 @@ const {
 // Live Closed Captions (Speech-to-Text & Real-time Translation)
 const {
   isSupported: isSpeechSupported,
-  isListening: isCaptionListening,
   start: startCaptions,
   stop: stopCaptions,
 } = useSpeechToText();
