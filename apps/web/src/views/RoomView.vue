@@ -8,6 +8,7 @@ import LanguageSwitcher from "../components/LanguageSwitcher.vue";
 import QualityBadge from "../components/QualityBadge.vue";
 import VideoTile from "../components/VideoTile.vue";
 import { useSpeechToText } from "../composables/useSpeechToText";
+import { useTranslation } from "../composables/useTranslation";
 import { useWebRTC } from "../composables/useWebRTC";
 
 const props = defineProps<{
@@ -20,6 +21,7 @@ const emit = defineEmits<{
 }>();
 
 const { t, locale } = useI18n();
+const { translate } = useTranslation();
 
 const isValidating = ref(true);
 const validationErrorCode = ref<string | null>(null);
@@ -59,7 +61,7 @@ const {
   roomId: props.roomId,
 });
 
-// Live Closed Captions (Speech-to-Text)
+// Live Closed Captions (Speech-to-Text & Real-time Translation)
 const {
   isSupported: isSpeechSupported,
   isListening: isCaptionListening,
@@ -82,18 +84,34 @@ const speechLang = computed(() => {
   return map[locale.value] || "en-US";
 });
 
+function startCaptionRecognition() {
+  startCaptions({
+    lang: speechLang.value,
+    continuous: true,
+    interimResults: true,
+    async onResult(text, isFinal) {
+      if (isFinal) {
+        let translated: string | undefined;
+        if (!speechLang.value.startsWith("en")) {
+          try {
+            translated = await translate(text, "en", speechLang.value.slice(0, 2));
+          } catch {
+            // Ignore translation error
+          }
+        }
+        sendCaption(text, true, translated);
+      } else {
+        sendCaption(text, false);
+      }
+    },
+  });
+}
+
 function toggleCaptions() {
   isCaptionsEnabled.value = !isCaptionsEnabled.value;
   if (isCaptionsEnabled.value) {
     if (!isMuted.value) {
-      startCaptions({
-        lang: speechLang.value,
-        continuous: true,
-        interimResults: true,
-        onResult(text, isFinal) {
-          sendCaption(text, isFinal);
-        },
-      });
+      startCaptionRecognition();
     }
   } else {
     stopCaptions();
@@ -104,16 +122,26 @@ watch(isMuted, (muted) => {
   if (muted && isCaptionsEnabled.value) {
     stopCaptions();
   } else if (!muted && isCaptionsEnabled.value) {
-    startCaptions({
-      lang: speechLang.value,
-      continuous: true,
-      interimResults: true,
-      onResult(text, isFinal) {
-        sendCaption(text, isFinal);
-      },
-    });
+    startCaptionRecognition();
   }
 });
+
+// Auto-translate peer captions to English if not already translated
+watch(
+  () => activeCaption.value,
+  async (caption) => {
+    if (caption && caption.sender === "peer" && caption.isFinal && !caption.translatedText) {
+      try {
+        const trans = await translate(caption.text, "en", "auto");
+        if (trans && trans.toLowerCase().trim() !== caption.text.toLowerCase().trim()) {
+          caption.translatedText = trans;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+  }
+);
 
 let sharedAudioCtx: AudioContext | null = null;
 

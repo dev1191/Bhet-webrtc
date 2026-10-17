@@ -11,6 +11,7 @@ import { RoomService } from "./room-service.js";
 import { createRoomRoutes } from "./routes/room.routes.js";
 import { SignalingHub, type TokenResolver } from "./signaling.js";
 import { createDbTokenResolver } from "./utils/token-resolver.js";
+import { translateText } from "./utils/translate.js";
 
 export { createDbTokenResolver };
 
@@ -42,6 +43,23 @@ export function createApp(options: AppOptions = {}) {
   // REST API (MVC Routes)
   app.route("/api", createRoomRoutes(roomController));
   app.get("/api/ice-servers", roomController.getIceServers);
+
+  // Free Live Speech Translation
+  app.post("/api/translate", async (c) => {
+    try {
+      const body = await c.req.json().catch(() => ({}));
+      const text = typeof body?.text === "string" ? body.text.trim() : "";
+      if (!text) {
+        return c.json({ error: "Text is required" }, 400);
+      }
+      const targetLang = typeof body?.targetLang === "string" ? body.targetLang.slice(0, 5) : "en";
+      const sourceLang = typeof body?.sourceLang === "string" ? body.sourceLang.slice(0, 5) : "auto";
+      const result = await translateText(text, targetLang, sourceLang);
+      return c.json(result);
+    } catch {
+      return c.json({ error: "Translation failed" }, 500);
+    }
+  });
 
   // WebSocket Signaling
   app.get(

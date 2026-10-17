@@ -12,11 +12,13 @@ describe("Server HTTP & WebSocket", () => {
   let wsUrl: string;
   let db: RoomDatabase;
   let app: ReturnType<typeof createApp>["app"];
+  let nodeWs: ReturnType<typeof createApp>["nodeWs"];
 
   beforeAll(async () => {
     db = new RoomDatabase(":memory:");
     const created = createApp({ db });
     app = created.app;
+    nodeWs = created.nodeWs;
 
     await new Promise<void>((resolve) => {
       server = serve({ fetch: app.fetch, port: 0 }, () => resolve());
@@ -30,12 +32,14 @@ describe("Server HTTP & WebSocket", () => {
 
   afterAll(async () => {
     try {
+      (nodeWs as unknown as { wss?: { close?: (cb?: () => void) => void } })?.wss?.close?.();
       (server as unknown as { closeAllConnections?: () => void })?.closeAllConnections?.();
     } catch {
       // ignore
     }
     await new Promise<void>((resolve) => {
       server?.close(() => resolve());
+      setTimeout(resolve, 500);
     });
     db.close();
   });
@@ -141,7 +145,7 @@ describe("Server HTTP & WebSocket", () => {
 
     // Relay offer
     hostWs.send(JSON.stringify({ type: "offer", sdp: "v=0-db-test-offer" }));
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 150));
 
     expect(guestMessages).toContainEqual({
       type: "offer",
@@ -222,12 +226,38 @@ describe("Server HTTP & WebSocket", () => {
 
     // Guest closes connection
     guestWs.close();
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 150));
 
     expect(hostMessages).toContainEqual({
       type: "peer-left",
     });
 
     hostWs.close();
+  });
+
+  it("POST /api/translate translates text and validates inputs", async () => {
+    // Missing text
+    const badRes = await app.request(`${baseUrl}/api/translate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    expect(badRes.status).toBe(400);
+
+    // Valid translation request
+    const res = await app.request(`${baseUrl}/api/translate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: "Hola",
+        sourceLang: "es",
+        targetLang: "en",
+      }),
+    });
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.original).toBe("Hola");
+    expect(data.translated).toBeTypeOf("string");
+    expect(data.targetLang).toBe("en");
   });
 });

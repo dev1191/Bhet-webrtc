@@ -21,6 +21,8 @@
 - **Web Audio Chimes & Visual Toasts:** Synthesized notification sounds for incoming messages and peer arrival with mobile gesture unlock.
 - **Real-Time Quality Metrics:** Live `getStats()` polling measuring round-trip time (RTT), packet loss percentage, and jitter.
 - **Adaptive Audio-Only Mode:** One-click toggle capping upstream video bitrate to 32 kbps to maintain voice clarity on weak networks.
+- **Live Closed Captions & Speech-to-Text:** Real-time voice-to-text dictation in chat and synchronized live closed caption subtitles (`CC`) via `RTCDataChannel("captions")`.
+- **Zero-Cost Live Speech Translation:** Automatic translation of foreign speech (Nepali, Hindi, Spanish, French, Japanese, Portuguese, etc.) into English subtitles in real time with server-side caching.
 - **7-Language Internationalization:** English, Nepali (नेपाली), Hindi (हिन्दी), Spanish (Español), French (Français), Portuguese (Português), and Japanese (日本語) with on-demand Devanagari and Japanese font loading.
 - **Modern Responsive UI:** Built with UnoCSS (`@unocss/preset-wind4`) and Element Plus controls dock with full mobile safe-area support.
 

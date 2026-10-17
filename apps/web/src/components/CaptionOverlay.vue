@@ -20,21 +20,31 @@ const { t } = useI18n();
   >
     <div
       v-if="caption && caption.text"
-      class="absolute bottom-[max(92px,calc(env(safe-area-inset-bottom,16px)+76px))] left-1/2 -translate-x-1/2 z-25 max-w-xl w-[92%] sm:w-auto px-4 py-2.5 rounded-2.5xl bg-slate-950/85 backdrop-blur-xl border border-white/15 shadow-2xl flex items-center gap-2.5 text-center pointer-events-none"
+      class="absolute bottom-[max(92px,calc(env(safe-area-inset-bottom,16px)+76px))] left-1/2 -translate-x-1/2 z-25 max-w-xl w-[92%] sm:w-auto px-4 py-2.5 rounded-2.5xl bg-slate-950/90 backdrop-blur-xl border border-white/15 shadow-2xl flex items-start gap-2.5 text-left pointer-events-none"
     >
       <!-- Speaker Tag -->
       <span
-        class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider shrink-0"
+        class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider shrink-0 mt-0.5"
         :class="caption.sender === 'you' ? 'bg-indigo-500/25 text-indigo-300 border border-indigo-400/30' : 'bg-emerald-500/25 text-emerald-300 border border-emerald-400/30'"
       >
         {{ caption.sender === 'you' ? t('room.you') : t('room.peer') }}
       </span>
 
-      <!-- Subtitle Text -->
-      <p class="m-0 text-xs sm:text-sm font-medium text-slate-100 leading-snug drop-shadow-sm truncate">
-        <span>{{ caption.text }}</span>
-        <span v-if="!caption.isFinal" class="inline-block text-indigo-400 animate-pulse ml-1 font-bold">...</span>
-      </p>
+      <!-- Subtitle Text & Translation -->
+      <div class="flex flex-col min-w-0 pr-1">
+        <p class="m-0 text-xs sm:text-sm font-medium text-slate-100 leading-snug drop-shadow-sm">
+          <span>{{ caption.text }}</span>
+          <span v-if="!caption.isFinal" class="inline-block text-indigo-400 animate-pulse ml-1 font-bold">...</span>
+        </p>
+        <!-- Real-time English Translation -->
+        <p
+          v-if="caption.translatedText && caption.translatedText.toLowerCase().trim() !== caption.text.toLowerCase().trim()"
+          class="m-0 mt-1 text-[11px] sm:text-xs text-sky-300 font-medium flex items-center gap-1.5 drop-shadow-sm"
+        >
+          <span class="text-xs">🌐</span>
+          <span class="italic">{{ caption.translatedText }}</span>
+        </p>
+      </div>
     </div>
   </Transition>
 </template>

@@ -42,6 +42,7 @@ export interface ChatMessage {
 export interface LiveCaption {
   sender: "you" | "peer";
   text: string;
+  translatedText?: string;
   isFinal: boolean;
   timestamp: number;
 }
@@ -131,6 +132,7 @@ export function useWebRTC(options: UseWebRTCOptions) {
           activeCaption.value = {
             sender: "peer",
             text: parsed.text,
+            translatedText: typeof parsed.translatedText === "string" ? parsed.translatedText : undefined,
             isFinal: Boolean(parsed.isFinal),
             timestamp: Date.now(),
           };
@@ -157,13 +159,14 @@ export function useWebRTC(options: UseWebRTCOptions) {
     };
   }
 
-  function sendCaption(text: string, isFinal: boolean) {
+  function sendCaption(text: string, isFinal: boolean, translatedText?: string) {
     const trimmed = text.trim();
     if (!trimmed) return;
 
     activeCaption.value = {
       sender: "you",
       text: trimmed,
+      translatedText,
       isFinal,
       timestamp: Date.now(),
     };
@@ -175,6 +178,7 @@ export function useWebRTC(options: UseWebRTCOptions) {
           JSON.stringify({
             type: "caption",
             text: trimmed,
+            translatedText,
             isFinal,
           })
         );
