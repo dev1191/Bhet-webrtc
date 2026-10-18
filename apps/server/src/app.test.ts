@@ -260,4 +260,12 @@ describe("Server HTTP & WebSocket", () => {
     expect(data.translated).toBeTypeOf("string");
     expect(data.targetLang).toBe("en");
   });
+
+  it("POST /api/transcribe validates inputs and rejects missing file", async () => {
+    const res = await app.request(`${baseUrl}/api/transcribe`, {
+      method: "POST",
+      body: new FormData(),
+    });
+    expect(res.status).toBe(400);
+  });
 });

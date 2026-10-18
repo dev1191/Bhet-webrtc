@@ -13,6 +13,7 @@ import { SignalingHub, type TokenResolver } from "./signaling.js";
 import { createDbTokenResolver } from "./utils/token-resolver.js";
 import { logger } from "./utils/logger.js";
 import { translateText } from "./utils/translate.js";
+import { transcribeAudio } from "./utils/transcribe.js";
 
 export { createDbTokenResolver };
 
@@ -88,6 +89,46 @@ export function createApp(options: AppOptions = {}) {
     } catch (err) {
       logger.error("HTTP", "POST /api/translate unhandled error", { error: String(err) });
       return c.json({ error: "Translation failed" }, 500);
+    }
+  });
+
+  // Multilingual Speech-to-Text via Whisper (Groq)
+  app.post("/api/transcribe", async (c) => {
+    try {
+      const formData = await c.req.raw.formData();
+      const file = formData.get("file");
+      if (!file || !(file instanceof Blob)) {
+        return c.json({ error: "Audio file is required" }, 400);
+      }
+      const targetLang = formData.get("targetLang")?.toString();
+      const result = await transcribeAudio(file);
+
+      if (result.error) {
+        return c.json({ error: result.error, text: "", language: "" }, 502);
+      }
+
+      if (!result.text) {
+        return c.json({ text: "", language: result.language || "" });
+      }
+
+      let translated: string | undefined;
+      if (targetLang && result.language && !result.language.toLowerCase().startsWith(targetLang.toLowerCase())) {
+        try {
+          const trans = await translateText(result.text, targetLang, result.language);
+          translated = trans.translated;
+        } catch {
+          // ignore translation errors
+        }
+      }
+
+      return c.json({
+        text: result.text,
+        language: result.language,
+        translated,
+      });
+    } catch (err) {
+      logger.error("HTTP", "POST /api/transcribe unhandled error", { error: String(err) });
+      return c.json({ error: "Transcription failed" }, 500);
     }
   });
 

@@ -34,6 +34,9 @@ const guestToken = ref<string | null>(null);
 const notificationToast = ref<{ id: number; text: string; sender: string } | null>(null);
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
+const layoutMode = ref<"grid" | "spotlight">("grid");
+const isWaitingCardMinimized = ref(false);
+
 const {
   status,
   role,
@@ -425,18 +428,18 @@ function handleLeave() {
         </div>
 
         <!-- Room ID Pill -->
-        <button
-          type="button"
-          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-800/80 border border-white/12 text-slate-200 text-xs hover:bg-slate-700/90 transition-all cursor-pointer"
+        <el-button
+          size="small"
+          class="!px-2.5 !py-1 !rounded-full !bg-slate-800/80 !border-white/12 !text-slate-200 !text-xs hover:!bg-slate-700/90 hover:!border-white/20 !transition-all !cursor-pointer"
           :title="copiedInvite ? 'Copied guest invite link!' : 'Click to copy guest invite link'"
           @click="copyInviteLink"
         >
-          <span class="text-indigo-400 font-bold">#</span>
+          <span class="text-indigo-400 font-bold mr-0.5">#</span>
           <span class="font-mono font-medium">{{ roomId }}</span>
           <span class="ml-1 text-xs" :class="copiedInvite ? 'text-emerald-400 font-bold' : 'text-slate-400'">
             {{ copiedInvite ? '✓' : '⧉' }}
           </span>
-        </button>
+        </el-button>
       </div>
 
       <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
@@ -446,6 +449,27 @@ function handleLeave() {
           :quality="quality"
           :metrics="qualityMetrics"
         />
+
+        <!-- Layout Mode Switcher (Grid vs Cinema) -->
+        <el-button
+          v-if="peerPresent && remoteStream"
+          size="small"
+          class="!px-2.5 !py-1 !rounded-full !bg-slate-800/80 hover:!bg-slate-700/90 !border-white/12 !text-slate-200 !text-xs !transition-all !cursor-pointer !shadow-sm"
+          :title="layoutMode === 'grid' ? 'Switch to Cinema Spotlight View' : 'Switch to Side-by-Side Grid View'"
+          @click="layoutMode = layoutMode === 'grid' ? 'spotlight' : 'grid'"
+        >
+          <svg v-if="layoutMode === 'grid'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5 text-indigo-400 mr-1">
+            <rect x="3" y="3" width="8" height="8" rx="1.5" />
+            <rect x="13" y="3" width="8" height="8" rx="1.5" />
+            <rect x="3" y="13" width="8" height="8" rx="1.5" />
+            <rect x="13" y="13" width="8" height="8" rx="1.5" />
+          </svg>
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5 text-indigo-400 mr-1">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <rect x="13" y="12" width="6" height="7" rx="1" fill="currentColor" fill-opacity="0.3" />
+          </svg>
+          <span class="hidden sm:inline font-medium text-[11px]">{{ layoutMode === 'grid' ? 'Grid' : 'Cinema' }}</span>
+        </el-button>
 
         <!-- Role Badge -->
         <span
@@ -525,81 +549,180 @@ function handleLeave() {
     </div>
 
     <!-- Active Call Viewport -->
-    <main v-else class="flex-1 relative flex items-center justify-center p-2 sm:p-4 overflow-hidden">
-      <!-- Remote Peer View (Edge to Edge Cinema) -->
-      <div v-if="peerPresent && remoteStream" class="w-full h-full max-w-7xl max-h-[calc(100vh-140px)] relative">
-        <VideoTile
-          :stream="remoteStream"
-          :label="t('room.peer')"
-        />
-      </div>
-
-      <!-- Waiting State View with Quick-Share Invite Card -->
-      <div v-else class="flex-1 flex flex-col items-center justify-start w-full h-full z-5 overflow-y-auto p-4 pb-28">
-        <div class="w-full max-w-md p-6 sm:p-8 rounded-3xl bg-slate-900/80 backdrop-blur-2xl border border-white/10 shadow-2xl text-center flex flex-col items-center">
-          <!-- Radar Animation -->
-          <div class="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center mb-4">
-            <div class="absolute w-full h-full rounded-full border-2 border-indigo-500/40 animate-ping" />
-            <div class="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/50">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-6 h-6">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <line x1="19" y1="8" x2="19" y2="14" />
-                <line x1="22" y1="11" x2="16" y2="11" />
-              </svg>
-            </div>
+    <main v-else class="flex-1 relative flex items-center justify-center p-2 sm:p-3 md:p-4 overflow-hidden w-full h-full min-h-0">
+      <!-- 2-PEER CONNECTED STATE -->
+      <template v-if="peerPresent && remoteStream">
+        <!-- Layout: Responsive Split Grid -->
+        <div
+          v-if="layoutMode === 'grid'"
+          class="w-full h-full max-w-7xl flex flex-col md:flex-row gap-2.5 sm:gap-4 items-center justify-center min-h-0 pb-16 sm:pb-20"
+        >
+          <!-- Remote Peer Tile -->
+          <div class="flex-1 w-full h-full min-h-0 min-w-0 rounded-2.5xl sm:rounded-3xl overflow-hidden shadow-2xl relative">
+            <VideoTile
+              :stream="remoteStream"
+              :label="t('room.peer')"
+              :mirrored="false"
+            />
           </div>
 
-          <h3 class="m-0 mb-1.5 font-display text-lg sm:text-xl font-bold text-slate-100">
-            {{ t('room.waitingForPeer') }}
-          </h3>
-          <p class="m-0 mb-5 text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Share this instant invite link with your peer to start the direct video call.
-          </p>
-
-          <div class="flex flex-col sm:flex-row items-center gap-2.5 w-full">
-            <button
-              type="button"
-              class="w-full flex-1 flex items-center justify-between bg-slate-800/80 hover:bg-slate-700/90 border border-white/12 px-3.5 py-2 rounded-full text-slate-200 text-xs transition-all cursor-pointer"
-              @click="copyInviteLink"
-            >
-              <span class="font-mono font-semibold text-indigo-300 truncate mr-2">{{ roomId }}</span>
-              <span class="font-semibold text-sky-400 text-xs shrink-0">
-                {{ copiedInvite ? '✓ Copied' : 'Copy link' }}
-              </span>
-            </button>
-            <button
-              type="button"
-              class="w-full sm:w-auto bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-400 font-semibold text-xs px-3.5 py-2 rounded-full cursor-pointer transition-all whitespace-nowrap"
-              @click="shareViaWhatsApp"
-            >
-              💬 WhatsApp
-            </button>
+          <!-- Local User Tile -->
+          <div class="flex-1 w-full h-full min-h-0 min-w-0 rounded-2.5xl sm:rounded-3xl overflow-hidden shadow-2xl relative">
+            <VideoTile
+              :stream="localStream"
+              :muted="true"
+              :label="t('room.you')"
+              :is-camera-off="isCameraOff"
+              :is-audio-muted="isMuted"
+              :mirrored="true"
+            />
           </div>
         </div>
 
-        <!-- Solo Video Preview in Waiting View -->
-        <div class="w-full max-w-md h-50 sm:h-64 mt-4 rounded-2.5xl overflow-hidden shadow-2xl border border-white/10">
+        <!-- Layout: Cinema Spotlight View with Floating PiP -->
+        <div
+          v-else
+          class="w-full h-full max-w-7xl relative flex items-center justify-center min-h-0 pb-16 sm:pb-20"
+        >
+          <!-- Primary Remote Cinema Tile -->
+          <div class="w-full h-full rounded-2.5xl sm:rounded-3xl overflow-hidden shadow-2xl relative">
+            <VideoTile
+              :stream="remoteStream"
+              :label="t('room.peer')"
+              :mirrored="false"
+            />
+          </div>
+
+          <!-- Floating Local Picture-in-Picture Tile -->
+          <div
+            class="absolute bottom-[max(84px,calc(env(safe-area-inset-bottom,16px)+72px))] right-3 sm:right-6 w-28 h-40 sm:w-56 sm:h-38 z-20 rounded-2.5xl border-2 border-white/25 shadow-2xl transition-all duration-300 hover:scale-104 hover:border-indigo-400 overflow-hidden cursor-pointer backdrop-blur-md"
+            title="Click to switch to Split Grid view"
+            @click="layoutMode = 'grid'"
+          >
+            <VideoTile
+              :stream="localStream"
+              :muted="true"
+              :label="t('room.you')"
+              :is-camera-off="isCameraOff"
+              :is-audio-muted="isMuted"
+              :mirrored="true"
+            />
+          </div>
+        </div>
+      </template>
+
+      <!-- 1-PEER WAITING STATE (Full-stage camera with floating glassmorphic invite) -->
+      <div v-else class="relative w-full h-full max-w-5xl flex items-center justify-center min-h-0 pb-16 sm:pb-20">
+        <!-- Full-stage Local Video Preview -->
+        <div class="w-full h-full rounded-2.5xl sm:rounded-3xl overflow-hidden shadow-2xl relative border border-white/10">
           <VideoTile
             :stream="localStream"
             :muted="true"
             :label="t('room.you')"
             :is-camera-off="isCameraOff"
+            :is-audio-muted="isMuted"
+            :mirrored="true"
           />
         </div>
-      </div>
 
-      <!-- Local Video (Picture-in-Picture when peer is present) -->
-      <div
-        v-if="peerPresent && remoteStream"
-        class="absolute bottom-[max(84px,calc(env(safe-area-inset-bottom,16px)+68px))] right-3 sm:right-6 w-26 h-38 sm:w-55 sm:h-35 z-20 rounded-2xl border-2 border-white/25 shadow-2xl transition-all duration-300 hover:scale-104 hover:border-indigo-400 overflow-hidden"
-      >
-        <VideoTile
-          :stream="localStream"
-          :muted="true"
-          :label="t('room.you')"
-          :is-camera-off="isCameraOff"
-        />
+        <!-- Floating Glassmorphic Invite Card -->
+        <Transition
+          enter-active-class="transition duration-300 ease-out"
+          enter-from-class="transform scale-95 opacity-0"
+          enter-to-class="transform scale-100 opacity-100"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="transform scale-100 opacity-100"
+          leave-to-class="transform scale-95 opacity-0"
+        >
+          <div
+            v-if="!isWaitingCardMinimized"
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-[92%] max-w-md p-6 sm:p-7 rounded-3xl bg-slate-950/85 backdrop-blur-2xl border border-white/15 shadow-2xl text-center flex flex-col items-center"
+          >
+            <!-- Minimize Button -->
+            <el-button
+              circle
+              size="small"
+              class="!absolute !top-3.5 !right-3.5 !w-7 !h-7 !p-0 !rounded-full !bg-slate-800/80 hover:!bg-slate-700 !text-slate-300 hover:!text-white !border-white/10 !text-xs !transition-all !cursor-pointer"
+              title="Minimize invite card to preview full camera"
+              @click="isWaitingCardMinimized = true"
+            >
+              ✕
+            </el-button>
+
+            <!-- Pulsing Radar Animation -->
+            <div class="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-3">
+              <div class="absolute w-full h-full rounded-full border-2 border-indigo-500/40 animate-ping" />
+              <div class="relative w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/50">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <line x1="19" y1="8" x2="19" y2="14" />
+                  <line x1="22" y1="11" x2="16" y2="11" />
+                </svg>
+              </div>
+            </div>
+
+            <h3 class="m-0 mb-1 font-display text-base sm:text-lg font-bold text-slate-100">
+              {{ t('room.waitingForPeer') }}
+            </h3>
+            <p class="m-0 mb-4 text-xs text-slate-400 leading-relaxed max-w-xs">
+              Share this instant invite link with your peer to start the direct video call.
+            </p>
+
+            <div class="flex flex-col sm:flex-row items-center gap-2 w-full">
+              <el-button
+                class="!w-full sm:!flex-1 !flex !items-center !justify-between !bg-slate-800/90 hover:!bg-slate-700/90 !border-white/15 !px-3.5 !py-2 !rounded-full !text-slate-200 !text-xs !transition-all !cursor-pointer !shadow-sm !m-0"
+                @click="copyInviteLink"
+              >
+                <span class="font-mono font-semibold text-indigo-300 truncate mr-2">{{ roomId }}</span>
+                <span class="font-semibold text-sky-400 text-xs shrink-0">
+                  {{ copiedInvite ? '✓ Copied' : 'Copy link' }}
+                </span>
+              </el-button>
+              <el-button
+                class="!w-full sm:!w-auto !bg-emerald-500/20 hover:!bg-emerald-500/30 !border-emerald-500/40 !text-emerald-300 !font-semibold !text-xs !px-3.5 !py-2 !rounded-full !cursor-pointer !transition-all !whitespace-nowrap !shadow-sm !m-0"
+                @click="shareViaWhatsApp"
+              >
+                💬 WhatsApp
+              </el-button>
+            </div>
+          </div>
+        </Transition>
+
+        <!-- Minimized Floating Invite Pill -->
+        <Transition
+          enter-active-class="transition duration-300 ease-out"
+          enter-from-class="transform -translate-y-4 opacity-0"
+          enter-to-class="transform translate-y-0 opacity-100"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="transform translate-y-0 opacity-100"
+          leave-to-class="transform -translate-y-4 opacity-0"
+        >
+          <div
+            v-if="isWaitingCardMinimized"
+            class="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/85 backdrop-blur-xl border border-white/15 shadow-xl text-xs text-slate-200"
+          >
+            <span class="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24] animate-pulse" />
+            <span class="font-medium">{{ t('room.waitingForPeer') }}</span>
+            <el-button
+              link
+              size="small"
+              class="!ml-1 !text-sky-400 !font-semibold hover:!underline !p-0 !h-auto !text-xs !cursor-pointer"
+              @click="copyInviteLink"
+            >
+              {{ copiedInvite ? '✓ Copied' : 'Copy link' }}
+            </el-button>
+            <el-button
+              link
+              size="small"
+              class="!ml-1 !text-slate-400 hover:!text-white !px-1 !h-auto !font-bold !text-xs !cursor-pointer"
+              title="Expand invite card"
+              @click="isWaitingCardMinimized = false"
+            >
+              ⤢
+            </el-button>
+          </div>
+        </Transition>
       </div>
     </main>
 

@@ -14,15 +14,16 @@
 - **Zero Sign-Up & Zero Trackers:** Create a room in 1 click; share the guest link; talk immediately.
 - **W3C Perfect Negotiation:** Rock-solid WebRTC state machine handling bidirectional offers/answers without race collisions.
 - **Self-Hosted TURN Relay:** Coturn integration with HMAC-SHA1 ephemeral credentials ensures calls connect through symmetric NATs, firewalls, and cellular networks.
-- **Live Closed Captions (CC):** In-call real-time speech transcription using the native W3C Web Speech API. Captions stream peer-to-peer over `RTCDataChannel` with zero server processing or API fees.
+- **High-Accuracy Speech-to-Text:** Server-side Whisper (`whisper-large-v3-turbo` via Groq) with intelligent silence/hallucination filtering, plus automatic client fallback to native W3C Web Speech API.
+- **Live Closed Captions (CC):** In-call synchronized subtitles streaming peer-to-peer over `RTCDataChannel("captions")` with low latency.
+- **Real-Time Speech Translation:** Automatic live translation of foreign speech (Nepali, Hindi, Spanish, French, Japanese, Portuguese, etc.) into English subtitles with server-side caching.
 - **Chat Voice Dictation:** One-tap speech-to-text in the in-call chat input with multi-language synchronization.
 - **Automated Reconnection:** Automatic ICE restarts on network handovers (e.g., switching from Wi-Fi to cellular 4G/5G).
 - **In-Call P2P DataChannel Chat:** Text messages flow directly peer-to-peer via `RTCDataChannel("chat")` without ever touching server disks.
 - **Web Audio Chimes & Visual Toasts:** Synthesized notification sounds for incoming messages and peer arrival with mobile gesture unlock.
 - **Real-Time Quality Metrics:** Live `getStats()` polling measuring round-trip time (RTT), packet loss percentage, and jitter.
 - **Adaptive Audio-Only Mode:** One-click toggle capping upstream video bitrate to 32 kbps to maintain voice clarity on weak networks.
-- **Live Closed Captions & Speech-to-Text:** Real-time voice-to-text dictation in chat and synchronized live closed caption subtitles (`CC`) via `RTCDataChannel("captions")`.
-- **Zero-Cost Live Speech Translation:** Automatic translation of foreign speech (Nepali, Hindi, Spanish, French, Japanese, Portuguese, etc.) into English subtitles in real time with server-side caching.
+- **Structured Diagnostic Logging:** High-performance Pino logger with file persistence (`logs/app.log`), console pretty-printing (`pino-pretty`), and client-side diagnostic telemetry over WebSocket signaling.
 - **7-Language Internationalization:** English, Nepali (नेपाली), Hindi (हिन्दी), Spanish (Español), French (Français), Portuguese (Português), and Japanese (日本語) with on-demand Devanagari and Japanese font loading.
 - **Modern Responsive UI:** Built with UnoCSS (`@unocss/preset-wind4`) and Element Plus controls dock with full mobile safe-area support.
 
@@ -46,15 +47,21 @@
 +------------------------+                                +------------------------+
             \                                                    /
              \========= Direct P2P SRTP Media & DataChannel =====/
-                         (Audio, Video, Encrypted Chat)
+                         (Audio, Video, Encrypted Chat, CC)
 ```
 
 ### Backend Architecture (Node.js + Hono + SQLite)
 Built using the **MVC + Service** pattern:
 - **Models (`src/models/room.model.ts`):** Lightweight SQLite database layer managing room state and 24-hour expirations.
 - **Service (`src/room-service.ts`):** Business logic orchestrating room creation, cryptographic token generation, and TURN credential signing.
-- **Controllers (`src/controllers/room.controller.ts`):** HTTP endpoints for `POST /api/rooms`, `GET /api/rooms/:id/validate`, and `GET /api/ice-servers`.
-- **Signaling Hub (`src/signaling.ts`):** In-memory WebSocket hub routing messages, enforcing strict 2-peer room limits (`ROOM_FULL`), and dispatching presence notifications.
+- **Controllers & API Endpoints:**
+  - `POST /api/rooms` — Room creation with cryptographically secure host/guest tokens.
+  - `GET /api/rooms/:id/validate` — Token and capacity verification.
+  - `GET /api/ice-servers` — Ephemeral TURN/STUN credential minting.
+  - `POST /api/transcribe` — Multilingual audio slice speech-to-text with Groq Whisper.
+  - `POST /api/translate` — Real-time text translation with in-memory caching.
+- **Signaling Hub (`src/signaling.ts`):** In-memory WebSocket hub routing messages, enforcing strict 2-peer room limits (`ROOM_FULL`), and collecting diagnostic logs.
+- **Logging Subsystem (`src/utils/logger.ts`):** Pino file logger (`logs/app.log`) and pretty console streams.
 
 ---
 
@@ -74,6 +81,23 @@ docker compose up -d --build
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## Environment Configuration
+
+Configure the following variables in `.env` (or via Docker Compose environment):
+
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `3000` | Port for the backend API and WebSocket server |
+| `DB_PATH` | `./data/bhet.sqlite` | Path to the SQLite database storing room sessions |
+| `APP_URL` | `http://localhost:5173` | Allowed origin for CORS and web client URL |
+| `TURN_SECRET` | `bhet-shared-turn-secret` | HMAC-SHA1 shared secret for coturn ephemeral credentials |
+| `TURN_REALM` | `bhet.local` | Realm used by coturn |
+| `TURN_URLS` | `turn:localhost:3478?transport=udp,...` | Comma-separated list of STUN/TURN URLs |
+| `TURN_CREDENTIAL_TTL_SECONDS` | `3600` | Lifespan of generated ICE TURN credentials in seconds |
+| `GROQ_API_KEY` | *(Optional)* | Groq API key for multilingual Whisper Speech-to-Text (`whisper-large-v3-turbo`) |
 
 ---
 

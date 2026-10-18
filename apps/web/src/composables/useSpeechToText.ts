@@ -52,25 +52,56 @@ function getSpeechRecognitionClass(): SpeechRecognitionConstructor | null {
   return win.SpeechRecognition || win.webkitSpeechRecognition || null;
 }
 
+function getSupportedMimeType(): string {
+  if (typeof window === "undefined" || !window.MediaRecorder) return "";
+  const types = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/ogg;codecs=opus",
+    "audio/mp4",
+  ];
+  return types.find((type) => MediaRecorder.isTypeSupported(type)) || "";
+}
+
+export interface SpeechResultMeta {
+  language?: string;
+  translated?: string;
+}
+
 export interface UseSpeechToTextOptions {
   lang?: string;
+  targetLang?: string;
   continuous?: boolean;
   interimResults?: boolean;
-  onResult?: (text: string, isFinal: boolean) => void;
+  provider?: "whisper" | "native";
+  onResult?: (text: string, isFinal: boolean, meta?: SpeechResultMeta) => void;
   onError?: (error: string) => void;
   onEnd?: () => void;
 }
 
 export function useSpeechToText() {
-  const isSupported = computed(() => getSpeechRecognitionClass() !== null);
+  const isSupported = computed(() => {
+    if (typeof window === "undefined") return false;
+    const hasMediaRecorder = !!window.MediaRecorder && !!navigator.mediaDevices?.getUserMedia;
+    return hasMediaRecorder || getSpeechRecognitionClass() !== null;
+  });
+
   const isListening = ref(false);
   const transcript = ref("");
   const interimTranscript = ref("");
   const error = ref<string | null>(null);
 
-  let recognition: SpeechRecognitionInstance | null = null;
+  // Whisper MediaRecorder state
+  let mediaStream: MediaStream | null = null;
+  let mediaRecorder: MediaRecorder | null = null;
+  let recordedChunks: Blob[] = [];
+  let sliceTimer: ReturnType<typeof setTimeout> | null = null;
   let activeOptions: UseSpeechToTextOptions = {};
   let shouldKeepListening = false;
+  let whisperFailCount = 0;
+
+  // Native SpeechRecognition state (fallback)
+  let nativeRecognition: SpeechRecognitionInstance | null = null;
   let restartTimeout: ReturnType<typeof setTimeout> | null = null;
 
   async function logClient(level: "INFO" | "WARN" | "ERROR", tag: string, message: string, details?: unknown) {
@@ -86,44 +117,167 @@ export function useSpeechToText() {
     }
   }
 
-  function start(options: UseSpeechToTextOptions = {}) {
+  function stopWhisperRecording() {
+    if (sliceTimer) {
+      clearTimeout(sliceTimer);
+      sliceTimer = null;
+    }
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      try {
+        mediaRecorder.stop();
+      } catch {
+        // ignore
+      }
+    }
+    mediaRecorder = null;
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((track) => track.stop());
+      mediaStream = null;
+    }
+  }
+
+  async function sendAudioSlice(blob: Blob, options: UseSpeechToTextOptions) {
+    if (blob.size < 1500) return; // Ignore very small silence buffers
+
+    try {
+      const formData = new FormData();
+      formData.append("file", blob, "audio.webm");
+      if (options.targetLang) {
+        formData.append("targetLang", options.targetLang);
+      }
+
+      const res = await fetch("/api/transcribe", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        whisperFailCount++;
+        logClient("WARN", "STT", `Transcribe returned status ${res.status} (failure ${whisperFailCount}/2)`);
+        if (whisperFailCount >= 2 && getSpeechRecognitionClass()) {
+          logClient("INFO", "STT", "Falling back from Whisper to native browser SpeechRecognition");
+          stopWhisperRecording();
+          startNativeRecognition(activeOptions);
+        }
+        return;
+      }
+
+      whisperFailCount = 0;
+
+      const data = (await res.json()) as {
+        text?: string;
+        language?: string;
+        translated?: string;
+      };
+
+      const cleanText = (data.text || "").trim();
+      if (cleanText) {
+        transcript.value = transcript.value ? `${transcript.value} ${cleanText}` : cleanText;
+        interimTranscript.value = "";
+        options.onResult?.(cleanText, true, {
+          language: data.language,
+          translated: data.translated,
+        });
+      }
+    } catch (err) {
+      whisperFailCount++;
+      logClient("ERROR", "STT", "Failed to send audio for transcription", err);
+      if (whisperFailCount >= 2 && getSpeechRecognitionClass()) {
+        logClient("INFO", "STT", "Falling back from Whisper to native browser SpeechRecognition");
+        stopWhisperRecording();
+        startNativeRecognition(activeOptions);
+      }
+    }
+  }
+
+  function startSliceCycle() {
+    if (!shouldKeepListening || !mediaRecorder) return;
+    recordedChunks = [];
+
+    try {
+      if (mediaRecorder.state !== "recording") {
+        mediaRecorder.start();
+      }
+    } catch {
+      return;
+    }
+
+    if (activeOptions.continuous) {
+      sliceTimer = setTimeout(() => {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+          mediaRecorder.stop();
+        }
+      }, 3500);
+    }
+  }
+
+  async function startWhisperRecording(options: UseSpeechToTextOptions) {
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+
+      const mimeType = getSupportedMimeType();
+      mediaRecorder = new MediaRecorder(mediaStream, mimeType ? { mimeType } : undefined);
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        if (recordedChunks.length > 0) {
+          const blob = new Blob(recordedChunks, {
+            type: mediaRecorder?.mimeType || "audio/webm",
+          });
+          recordedChunks = [];
+          void sendAudioSlice(blob, activeOptions);
+        }
+
+        if (shouldKeepListening && activeOptions.continuous) {
+          startSliceCycle();
+        } else if (!shouldKeepListening) {
+          isListening.value = false;
+          activeOptions.onEnd?.();
+        }
+      };
+
+      isListening.value = true;
+      startSliceCycle();
+    } catch (err) {
+      const isDenied =
+        err instanceof Error &&
+        (err.name === "NotAllowedError" || err.name === "PermissionDeniedError");
+      error.value = isDenied ? "not-allowed" : "SPEECH_ERROR";
+      options.onError?.(error.value);
+      isListening.value = false;
+    }
+  }
+
+  function startNativeRecognition(options: UseSpeechToTextOptions) {
     const SpeechClass = getSpeechRecognitionClass();
     if (!SpeechClass) {
       error.value = "SPEECH_NOT_SUPPORTED";
-      logClient("ERROR", "STT", "SpeechRecognition is NOT supported in this browser. Use Chrome, Edge, or Safari.");
       options.onError?.("SPEECH_NOT_SUPPORTED");
       return;
     }
 
-    if (restartTimeout) {
-      clearTimeout(restartTimeout);
-      restartTimeout = null;
-    }
-
-    if (recognition && isListening.value) {
-      try {
-        recognition.stop();
-      } catch {
-        // Ignore stop on active
-      }
-    }
-
-    activeOptions = options;
-    shouldKeepListening = true;
-    error.value = null;
-
     try {
-      recognition = new SpeechClass();
-      recognition.continuous = options.continuous ?? false;
-      recognition.interimResults = options.interimResults ?? true;
-      recognition.lang = options.lang || "en-US";
+      nativeRecognition = new SpeechClass();
+      nativeRecognition.continuous = options.continuous ?? false;
+      nativeRecognition.interimResults = options.interimResults ?? true;
+      nativeRecognition.lang = options.lang || "en-US";
 
-      recognition.onstart = () => {
+      nativeRecognition.onstart = () => {
         isListening.value = true;
-        logClient("INFO", "STT", `Listening started (lang: ${recognition?.lang || "unknown"})`);
       };
 
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
+      nativeRecognition.onresult = (event: SpeechRecognitionEvent) => {
         let currentInterim = "";
         let finalChunk = "";
 
@@ -141,7 +295,6 @@ export function useSpeechToText() {
         if (finalChunk) {
           transcript.value = transcript.value ? `${transcript.value} ${finalChunk.trim()}` : finalChunk.trim();
           interimTranscript.value = "";
-          logClient("INFO", "STT", `Final speech result: "${finalChunk.trim()}"`);
           activeOptions.onResult?.(finalChunk.trim(), true);
         } else if (currentInterim) {
           interimTranscript.value = currentInterim;
@@ -149,60 +302,74 @@ export function useSpeechToText() {
         }
       };
 
-      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        // "no-speech" is normal when user is quiet
+      nativeRecognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         if (event.error !== "no-speech") {
           error.value = event.error;
-          logClient("ERROR", "STT", `SpeechRecognition error: "${event.error}"`);
           activeOptions.onError?.(event.error);
         }
       };
 
-      recognition.onend = () => {
+      nativeRecognition.onend = () => {
         isListening.value = false;
         interimTranscript.value = "";
         activeOptions.onEnd?.();
 
-        // Auto-restart continuous recognition if not explicitly stopped
         if (activeOptions.continuous && shouldKeepListening && error.value !== "not-allowed") {
-          logClient("INFO", "STT", "SpeechRecognition paused by browser, restarting automatically...");
           restartTimeout = setTimeout(() => {
             if (shouldKeepListening) {
               try {
-                recognition?.start();
+                nativeRecognition?.start();
               } catch {
-                // If recreate needed
-                start(activeOptions);
+                startNativeRecognition(activeOptions);
               }
             }
           }, 300);
         }
       };
 
-      recognition.start();
+      nativeRecognition.start();
     } catch (err) {
       error.value = err instanceof Error ? err.message : "SPEECH_ERROR";
-      logClient("ERROR", "STT", `Failed to start SpeechRecognition: ${error.value}`);
+      options.onError?.(error.value);
       isListening.value = false;
+    }
+  }
+
+  function start(options: UseSpeechToTextOptions = {}) {
+    stop();
+    activeOptions = options;
+    shouldKeepListening = true;
+    error.value = null;
+
+    // Use Whisper by default unless explicitly set to "native"
+    const useNative = options.provider === "native";
+    if (!useNative && typeof window !== "undefined" && window.MediaRecorder && navigator.mediaDevices?.getUserMedia) {
+      void startWhisperRecording(options);
+    } else {
+      startNativeRecognition(options);
     }
   }
 
   function stop() {
     shouldKeepListening = false;
+    stopWhisperRecording();
+
     if (restartTimeout) {
       clearTimeout(restartTimeout);
       restartTimeout = null;
     }
-    if (recognition) {
+
+    if (nativeRecognition) {
       try {
-        recognition.stop();
+        nativeRecognition.stop();
       } catch {
-        // Ignore
+        // ignore
       }
+      nativeRecognition = null;
     }
+
     isListening.value = false;
     interimTranscript.value = "";
-    logClient("INFO", "STT", "SpeechRecognition stopped by user.");
   }
 
   function reset() {
@@ -212,14 +379,7 @@ export function useSpeechToText() {
   }
 
   onUnmounted(() => {
-    if (recognition) {
-      try {
-        recognition.abort();
-      } catch {
-        // Ignore
-      }
-      recognition = null;
-    }
+    stop();
   });
 
   return {
